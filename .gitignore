@@ -1,0 +1,16 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Data runtime persistence (si se genera en tests temporales)
+tests_temp/
+*.tmp
