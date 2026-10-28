@@ -7,7 +7,7 @@ Solución verificable para la coordinación de reservas de equipamiento de labor
 ## 1. Especificación Breve
 
 ### 1.1. Problema y Necesidad de Negocio
-La coordinación de un laboratorio gestiona pedidos mediante mensajes y planillas manuales, lo que causa dos inconsistencias graves:
+La coordinación de un laboratorio gestiona pedidos mediante mensajes y planillas manuales, lo que causa tres inconsistencias operativas críticas:
 * **Superposición de horarios:** Se asigna la misma unidad física a solicitantes distintos en horarios superpuestos.
 * **Bloqueos por cancelación:** Al cancelarse un turno, la unidad continúa figurando como ocupada impidiendo su reutilización.
 * **Falta de auditoría:** Pérdida del historial de reservas y cancelaciones previas.
@@ -15,7 +15,7 @@ La coordinación de un laboratorio gestiona pedidos mediante mensajes y planilla
 ### 1.2. Alcance
 * **Dentro del alcance:**
   * Lectura de inventario precargado e inmutable con 5 equipos físicos.
-  * Consulta determinista de disponibilidad por unidad e intervalo `[inicio, fin)`.
+  * Consulta determinista de disponibilidad por unidad e intervalo semiabierto `[inicio, fin)`.
   * Creación de reservas con identificador único, solicitante ficticio y rango temporal.
   * Cancelación de reservas liberando el horario pero conservando el identificador y sus datos históricos.
   * Persistencia en disco local (JSON) con recuperación completa tras reinicios.
@@ -39,11 +39,12 @@ La coordinación de un laboratorio gestiona pedidos mediante mensajes y planilla
 * **RN-05 (Límites Consecutivos Permitidos):** Intervalos semiabiertos `[inicio, fin)`. Si $fin_1 = inicio_2$, se permite la reserva contigua.
 * **RN-06 (Simultaneidad entre Unidades):** Unidades distintas pueden reservarse en el mismo intervalo sin conflicto.
 * **RN-07 (Canceladas no Bloquean):** Una reserva cancelada no interfiere con nuevas solicitudes.
+* **RN-08 (Idempotencia de Cancelación):** Cancelar una reserva ya cancelada arroja un error controlado.
 
 ### 1.5. Supuestos Técnicos
 * **Formato de fechas:** ISO 8601 estándar (`YYYY-MM-DDTHH:MM` o `YYYY-MM-DDTHH:MM:SS`).
-* **Zona horaria:** Local estandarizada sin desfase arbitrario.
-* **Tratamiento de fechas:** Se admiten fechas explícitas (pasadas o futuras) siempre que `inicio < fin`, asegurando la reproducibilidad de las pruebas automatizadas en cualquier momento temporal.
+* **Zona horaria:** Local estandarizada sin desfase arbitrario (naive datetime).
+* **Tratamiento de fechas:** Se admiten fechas explícitas (pasadas o futuras) siempre que `inicio < fin`, asegurando la reproducibilidad de las pruebas automatizadas en cualquier momento temporal sin depender del reloj del sistema.
 * **Límites:** Sin restricción artificial de anticipación máxima.
 
 > La especificación detallada completa se encuentra documentada en [docs/especificacion.md](docs/especificacion.md).
@@ -56,7 +57,7 @@ La coordinación de un laboratorio gestiona pedidos mediante mensajes y planilla
 ```text
 Challege-Agents_Topicos/
 ├── .gitignore
-├── requirements.txt            # Dependencias del proyecto (pytest)
+├── requirements.txt            # Dependencias del proyecto (pytest>=8.0.0)
 ├── README.md                   # Documentación central del desafío
 ├── Documentos/                 # Consignas de la cátedra
 │   └── challenge-agents.pdf
@@ -68,20 +69,21 @@ Challege-Agents_Topicos/
 │   └── reservas.json           # Persistencia de reservas (generado al operar)
 ├── src/                        # Código fuente modular
 │   ├── __init__.py
-│   ├── modelos.py              # Entidades: Equipo, Reserva, EstadoReserva
+│   ├── modelos.py              # Entidades: Equipo, Reserva, EstadoReserva, Excepciones
 │   ├── repositorio.py          # Repositorio JSON con persistencia atómica
 │   ├── servicio.py             # Lógica de negocio, validaciones y colisiones
 │   └── cli.py                  # Interfaz de línea de comandos interactiva
 └── tests/                      # Suite de pruebas automatizadas
     ├── __init__.py
     ├── conftest.py             # Fixtures con tmp_path aislado
-    └── test_reservas.py        # Casos de prueba requeridos por la consigna
+    ├── test_reservas.py        # Casos de prueba requeridos por la consigna
+    └── test_cli.py             # Pruebas automatizadas de la CLI
 ```
 
 ### 2.2. Decisiones Técnicas y Requisitos Previos
 * **Lenguaje:** Python 3.10 o superior (desarrollado y probado sobre Python 3.14.0).
 * **Dependencias:** `pytest` para testing automatizado (incluido en `requirements.txt`).
-* **Persistencia:** Archivo JSON local (`data/reservas.json`) con serialización atómica y manejo de codificación UTF-8.
+* **Persistencia:** Archivo JSON local (`data/reservas.json`) con serialización atómica (escritura en archivo temporal `.tmp` y posterior reemplazo atómico) y soporte UTF-8.
 
 ### 2.3. Instalación y Ejecución
 1. **Clonar el repositorio:**
@@ -102,35 +104,80 @@ Challege-Agents_Topicos/
    python -m src.cli --help
    ```
 
-### 2.4. Ejemplos de Comandos de la CLI
-* **Listar inventario:**
-  ```bash
-  python -m src.cli inventario
-  ```
-* **Consultar disponibilidad:**
-  ```bash
-  python -m src.cli disponibilidad MIC-01 2026-11-01T10:00 2026-11-01T11:00
-  ```
-* **Crear una reserva:**
-  ```bash
-  python -m src.cli reservar MIC-01 "Dra. Juana Manso" 2026-11-01T10:00 2026-11-01T11:00
-  ```
-* **Cancelar una reserva:**
-  ```bash
-  python -m src.cli cancelar <ID-RESERVA>
-  ```
-* **Listar todas las reservas (historial):**
-  ```bash
-  python -m src.cli listar
-  ```
+### 2.4. Ejemplos de Entrada y Salida (Comandos CLI)
 
-### 2.5. Persistencia y Advertencia sobre Reinicio de Datos
-* Las reservas persisten en `data/reservas.json`.
-* **Advertencia:** Eliminar o reiniciar el archivo `data/reservas.json` provocará el borrado permanente de las reservas registradas. El catálogo base en `data/inventario.json` es de solo lectura y nunca se modifica.
+#### Consultar inventario:
+```bash
+python -m src.cli inventario
+```
+*Salida:*
+```text
+--- INVENTARIO DE EQUIPOS DE LABORATORIO ---
+ID         | DESCRIPCIÓN
+---------------------------------------------
+MIC-01     | Microscopio digital
+MIC-02     | Microscopio digital
+OSC-01     | Osciloscopio
+MUL-01     | Multímetro
+FUE-01     | Fuente de alimentación
+
+Total: 5 unidades precargadas.
+```
+
+#### Crear una reserva:
+```bash
+python -m src.cli reservar MIC-01 "Dr. Bernardo Houssay" 2026-11-01T10:00 2026-11-01T11:00
+```
+*Salida:*
+```text
+=== RESERVA CONFIRMADA EXITOSAMENTE ===
+ID Reserva  : RES-46AB2B60
+Unidad      : MIC-01
+Solicitante : Dr. Bernardo Houssay
+Inicio      : 2026-11-01T10:00:00
+Fin         : 2026-11-01T11:00:00
+Estado      : ACTIVA
+```
+
+#### Consultar disponibilidad ante superposición:
+```bash
+python -m src.cli disponibilidad MIC-01 2026-11-01T10:30 2026-11-01T11:30
+```
+*Salida:*
+```text
+[NO DISPONIBLE] La unidad 'MIC-01' está OCUPADA por la reserva 'RES-46AB2B60' (Dr. Bernardo Houssay) entre 2026-11-01T10:00:00 y 2026-11-01T11:00:00.
+```
+
+#### Consultar disponibilidad en límite consecutivo permitido:
+```bash
+python -m src.cli disponibilidad MIC-01 2026-11-01T11:00 2026-11-01T12:00
+```
+*Salida:*
+```text
+[DISPONIBLE] La unidad 'MIC-01' está LIBRE entre 2026-11-01T11:00:00 y 2026-11-01T12:00:00.
+```
+
+#### Cancelar reserva y liberar horario:
+```bash
+python -m src.cli cancelar RES-46AB2B60
+```
+*Salida:*
+```text
+=== RESERVA CANCELADA ===
+ID Reserva  : RES-46AB2B60
+Unidad      : MIC-01
+Solicitante : Dr. Bernardo Houssay
+Horario     : 2026-11-01T10:00:00 a 2026-11-01T11:00:00
+Nuevo Estado: CANCELADA (Horario liberado)
+```
+
+### 2.5. Dónde Persisten los Datos y Advertencia de Reinicio
+* Las reservas persisten en el archivo JSON local `data/reservas.json`.
+* **Advertencia:** El reinicio manual o eliminación del archivo `data/reservas.json` provocará el borrado permanente de todas las reservas registradas. El catálogo `data/inventario.json` es de solo lectura y nunca se modifica.
 
 ### 2.6. Pendientes y Limitaciones
-* No implementa autenticación ni segregación de permisos por rol.
-* No está diseñado para concurrencia multi-proceso distribuida en producción (utiliza lectura y escritura de archivo único sincrónico).
+* No implementa autenticación de usuarios ni control de acceso basado en roles.
+* Operación sincrónica local: no cuenta con soporte para transacciones concurrentes distribuidas multi-nodo en entornos cloud.
 
 ---
 
@@ -138,42 +185,85 @@ Challege-Agents_Topicos/
 
 * **Entorno y Harness:** Google Antigravity IDE (Advanced Agentic Coding Environment).
 * **Modelo:** Gemini 3.8 Flash (`gemini-3.8-flash-high`) de Google DeepMind.
-* **Instrucciones y Contexto:** Saneado de credenciales y acotado estrictamente a las reglas de negocio descritas en `challenge-agents.pdf`.
-* **Herramientas Utilizadas:** Herramientas reales de filesystem (`read_file`, `write_file`, `edit_file`) y ejecución de comandos PowerShell (`run_command`), sujetas a revisión humana constante.
+* **Función y Elección:** Pair programmer agentic capaz de razonar sobre invariantes matemáticos, estructurar código modular y ejecutar pruebas automatizadas en la terminal PowerShell con baja latencia.
+* **Instrucciones y Contexto Saneado:** Se suministró la consigna oficial (`challenge-agents.pdf`) y directivas de arquitectura limpia. Se excluyeron deliberadamente secretos, APIs pagas y componentes fuera de alcance.
+* **Herramientas Utilizadas y Controles Humanos:**
+  * Filesystem (`read_file`, `write_file`, `edit_file`) y Terminal (`run_command`).
+  * Toda propuesta y comando fue revisado y validado interactivamente por el usuario humano.
 * **Adaptaciones Específicas Comprobables:**
-  1. *Límites Consecutivos:* Formulación matemática de intervalos semiabiertos $\max(inicio_1, inicio_2) < \min(fin_1, fin_2)$ que garantiza la aceptación de turnos consecutivos.
-  2. *Persistencia Aislada:* Desacoplamiento de la ruta del archivo de persistencia mediante inyección de dependencias para permitir tests con `tmp_path` 100% reproducibles y no destructivos.
+  1. *Intervalos Semiabiertos para Límites Consecutivos:* Formulación matemática $\max(inicio_1, inicio_2) < \min(fin_1, fin_2)$ que garantiza la aceptación de turnos contiguos (evidencia en [src/modelos.py](src/modelos.py) y [tests/test_reservas.py](tests/test_reservas.py)).
+  2. *Inyección de Rutas para Persistencia Aislada:* Desacoplamiento de las rutas de persistencia en `JsonReservaRepositorio` permitiendo tests no destructivos con `tmp_path` (evidencia en [tests/conftest.py](tests/conftest.py)).
 
-> La documentación detallada de la preparación del agente se encuentra en [docs/preparacion_agente.md](docs/preparacion_agente.md).
+> Documentación ampliada disponible en [docs/preparacion_agente.md](docs/preparacion_agente.md).
 
 ---
 
 ## 4. Registro de Decisiones y Delegación
 
 ### 4.1. Decisiones Significativas
-* **Persistencia en JSON vs. SQLite:** Se eligió JSON estructurado por máxima portabilidad, inspección visual directa sin dependencias adicionales y reproducibilidad inmediata en cualquier entorno con Python estándar.
-* **Intervalos Semiabiertos:** Se adoptó formalmente el estándar de intervalos semiabiertos `[inicio, fin)` para eliminar ambigüedades operativas en límites contiguos.
-* **Validaciones a Nivel de Capa de Servicio:** Las validaciones de negocio residen en el servicio (`ReservaServicio`), asegurando que tanto la CLI como las pruebas automatizadas apliquen exactamente las mismas reglas.
+* **Persistencia en JSON:** Se priorizó JSON estructurado sobre SQLite por su total transparencia, facilidad de inspección directa sin clientes externos y portabilidad nativa.
+* **Intervalos Semiabiertos `[inicio, fin)`:** Eliminan ambigüedad en los extremos de turnos y formalizan el comportamiento de límites consecutivos.
+* **Centralización en Capa de Servicio:** Las validaciones de invariantes residen exclusivamente en `ReservaServicio`, asegurando que la CLI y las pruebas compartan las mismas reglas.
 
 ### 4.2. Tres Episodios Reales de Delegación
 
-#### Episodio 1: Modelado de Dominio, Invariantes y Detección de Colisiones
-* **Objetivo y requisito:** Implementar las entidades base y el algoritmo de verificación de solapamientos que permita límites consecutivos y rechace cruces horarios para la misma unidad.
-* **Contexto e instrucción:** Se suministró la consigna sobre la regla de límites consecutivos y superposiciones.
-* **Acción o resultado del agente:** Implementación de `modelos.py` y función de colisiones en `servicio.py`.
-* **Decisión humana:** *Aceptado tras revisión de la fórmula matemática de intervalos semiabiertos.*
-* **Evidencia verificable:** Commit y pruebas unitarias correspondientes en `tests/test_reservas.py`.
+#### Episodio 1: Modelado de Dominio e Invariantes con Límites Consecutivos
+* **Objetivo y requisito:** Implementar las entidades de dominio y el algoritmo de detección de solapamientos que permita límites consecutivos, rechace superposiciones en la misma unidad y admita unidades simultáneas.
+* **Contexto e instrucción suministrada:**
+  > *"Define las entidades `Equipo`, `Reserva`, `EstadoReserva` y una función pura `hay_superposicion` basada en intervalos semiabiertos `[inicio, fin)` tal que $\max(inicio_1, inicio_2) < \min(fin_1, fin_2)$ para que turnos contiguos no colisionen."*
+* **Acción o resultado del agente:** Implementación de [src/modelos.py](src/modelos.py) con dataclasses, enumeración de estados y excepciones de dominio especializadas.
+* **Decisión humana:** *Aceptado.* Se verificó analíticamente que la desigualdad estricta `<` garantiza que si $fin_1 = inicio_2$, el resultado es `False` (sin colisión).
+* **Evidencia verificable:** Pruebas `test_limites_consecutivos_permitidos`, `test_rechazo_superposicion_misma_unidad` y `test_simultaneidad_unidades_distintas` en [tests/test_reservas.py](tests/test_reservas.py).
 
-#### Episodio 2: Capa de Persistencia y Aislamiento en Pruebas
-* **Objetivo y requisito:** Diseñar el repositorio de persistencia local en JSON con soporte para inyección de ruta temporal para testing.
-* **Contexto e instrucción:** Requisito de persistencia que sobreviva al reinicio y necesidad de pruebas no destructivas.
-* **Acción o resultado del agente:** Creación de `repositorio.py` y fixture con `tmp_path` en `conftest.py`.
-* **Decisión humana:** *Aceptado y verificado ejecutando pruebas de reinicio de aplicación.*
-* **Evidencia verificable:** Prueba de persistencia tras reinicio en `tests/test_reservas.py`.
+#### Episodio 2: Capa de Persistencia Atómica y Aislamiento de Pruebas
+* **Objetivo y requisito:** Desarrollar el repositorio de persistencia local en JSON con soporte de inyección de rutas para testing reproducible sin afectar los datos reales.
+* **Contexto e instrucción suministrada:**
+  > *"Crea `JsonReservaRepositorio` para gestionar `data/reservas.json` y `data/inventario.json`. Permite parametrizar las rutas en el constructor y utiliza escritura atómica mediante archivos temporales."*
+* **Acción o resultado del agente:** Creación de [src/repositorio.py](src/repositorio.py) con escritura segura (`.tmp` $\to$ `.replace()`) y fixture `repo_aislado` con `tmp_path` en [tests/conftest.py](tests/conftest.py).
+* **Decisión humana:** *Aceptado.* Se revisó el mecanismo atómico y se validó la recuperación completa tras reiniciar el servicio.
+* **Evidencia verificable:** Prueba `test_persistencia_recupera_estado_tras_reinicio` en [tests/test_reservas.py](tests/test_reservas.py).
 
-#### Episodio 3: Interfaz CLI y Verificación Integral de Casos Borde
-* **Objetivo y requisito:** Desarrollar la CLI interactiva y completar la suite de pruebas automatizadas con casos de borde (solicitantes vacíos, fechas invertidas, cancelaciones).
-* **Contexto e instrucción:** Requisito de interfaz ejecutable por consola y verificación humana independiente.
-* **Acción o resultado del agente:** Implementación de `src/cli.py` y casos de prueba negativos exhaustivos.
-* **Decisión humana:** *Verificado y validado en terminal con 100% de tests pasando.*
-* **Evidencia verificable:** Ejecución limpia de `python -m pytest` y comandos de CLI.
+#### Episodio 3: Interfaz CLI, Manejo de Codificación y Verificación Humana
+* **Objetivo y requisito:** Diseñar la interfaz de comandos de consola (`src/cli.py`) con subcomandos completos y validación ante fallos.
+* **Contexto e instrucción suministrada:**
+  > *"Implementa la CLI con subcomandos `inventario`, `disponibilidad`, `reservar`, `cancelar` y `listar`. Muestra salidas legibles con tablas formateadas y maneja errores de negocio amigablemente."*
+* **Acción o resultado del agente:** Implementación inicial de [src/cli.py](src/cli.py). Al ejecutar la prueba en la terminal PowerShell de Windows, se observaron caracteres corruptos en las tildes (`DESCRIPCIN`). El agente detectó la discordancia de página de códigos y añadió `sys.stdout.reconfigure(encoding="utf-8")`.
+* **Decisión humana:** *Corregido por problema de codificación en consola Windows y aceptado tras prueba manual.* Se ejecutó manualmente la secuencia completa (reserva, consulta de superposición, cancelación, disponibilidad liberada) y la suite automatizada completa de 17 tests.
+* **Evidencia verificable:** [src/cli.py](src/cli.py), [tests/test_cli.py](tests/test_cli.py) y salida de terminal con 17 pruebas aprobadas (`17 passed in 0.17s`).
+
+---
+
+## 5. Verificación de Pruebas y Resultados
+
+Ejecución de la suite completa de pruebas:
+```bash
+python -m pytest -v
+```
+
+Resultado obtenido:
+```text
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Topicos de Ingenieria del Software\Challege-Agents_Topicos
+collected 17 items
+
+tests/test_cli.py::test_cli_inventario PASSED                            [  5%]
+tests/test_cli.py::test_cli_ayuda_sin_argumentos PASSED                  [ 11%]
+tests/test_reservas.py::test_creacion_reserva_valida PASSED              [ 17%]
+tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T10:30-2026-11-01T11:30] PASSED [ 23%]
+tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T09:30-2026-11-01T10:30] PASSED [ 29%]
+tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T10:15-2026-11-01T10:45] PASSED [ 35%]
+tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T09:00-2026-11-01T12:00] PASSED [ 41%]
+tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T10:00-2026-11-01T11:00] PASSED [ 47%]
+tests/test_reservas.py::test_limites_consecutivos_permitidos PASSED      [ 52%]
+tests/test_reservas.py::test_simultaneidad_unidades_distintas PASSED     [ 58%]
+tests/test_reservas.py::test_solicitante_vacio_rechazado[] PASSED        [ 64%]
+tests/test_reservas.py::test_solicitante_vacio_rechazado[   ] PASSED     [ 70%]
+tests/test_reservas.py::test_solicitante_vacio_rechazado[\t\n  ] PASSED  [ 76%]
+tests/test_reservas.py::test_inicio_mayor_o_igual_a_fin_rechazado PASSED [ 82%]
+tests/test_reservas.py::test_unidad_inexistente_rechazada PASSED         [ 88%]
+tests/test_reservas.py::test_cancelacion_conserva_historial_y_libera_horario PASSED [ 94%]
+tests/test_reservas.py::test_persistencia_recupera_estado_tras_reinicio PASSED [100%]
+
+============================= 17 passed in 0.17s ==============================
+```
