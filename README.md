@@ -228,8 +228,8 @@ Nuevo Estado: CANCELADA (Horario liberado)
 * **Contexto e instrucción suministrada:**
   > *"Implementa la CLI con subcomandos `inventario`, `disponibilidad`, `reservar`, `cancelar` y `listar`. Muestra salidas legibles con tablas formateadas y maneja errores de negocio amigablemente."*
 * **Acción o resultado del agente:** Implementación inicial de [src/cli.py](src/cli.py). Al ejecutar la prueba en la terminal PowerShell de Windows, se observaron caracteres corruptos en las tildes (`DESCRIPCIN`). El agente detectó la discordancia de página de códigos y añadió `sys.stdout.reconfigure(encoding="utf-8")`.
-* **Decisión humana:** *Corregido por problema de codificación en consola Windows y aceptado tras prueba manual.* Se ejecutó manualmente la secuencia completa (reserva, consulta de superposición, cancelación, disponibilidad liberada) y la suite automatizada completa de 17 tests.
-* **Evidencia verificable:** [src/cli.py](src/cli.py), [tests/test_cli.py](tests/test_cli.py) y salida de terminal con 17 pruebas aprobadas (`17 passed in 0.17s`).
+* **Decisión humana:** *Corregido por problema de codificación en consola Windows y aceptado tras prueba manual.* Se ejecutó manualmente la secuencia completa (reserva, consulta de superposición, límites consecutivos, cancelación, disponibilidad liberada y persistencia) y la suite automatizada completa de 17 tests.
+* **Evidencia verificable:** [src/cli.py](src/cli.py), [tests/test_cli.py](tests/test_cli.py), registro de comprobaciones ejecutadas en terminal y bitácora detallada en [docs/verificacion_humana.md](docs/verificacion_humana.md).
 
 ---
 

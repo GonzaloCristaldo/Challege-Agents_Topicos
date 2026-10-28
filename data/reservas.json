@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "id": "RES-87BB3A99",
+    "id_unidad": "MIC-01",
+    "solicitante": "Dra. Juana Manso",
+    "inicio": "2026-11-01T10:00:00",
+    "fin": "2026-11-01T11:00:00",
+    "estado": "CANCELADA"
+  },
+  {
+    "id": "RES-D1CD6D98",
+    "id_unidad": "MIC-01",
+    "solicitante": "Dr. Bernardo Houssay",
+    "inicio": "2026-11-01T11:00:00",
+    "fin": "2026-11-01T12:00:00",
+    "estado": "ACTIVA"
+  },
+  {
+    "id": "RES-E0BC977C",
+    "id_unidad": "MIC-02",
+    "solicitante": "Ing. Cecilia Grierson",
+    "inicio": "2026-11-01T10:00:00",
+    "fin": "2026-11-01T11:00:00",
+    "estado": "ACTIVA"
+  }
+]
