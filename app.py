@@ -1,13 +1,6 @@
 """
 Interfaz gráfica interactiva para el Sistema de Gestión de Reservas de Laboratorio
 desarrollada con Streamlit.
-
-Permite:
-- Visualizar el catálogo de unidades físicas precargadas.
-- Consultar disponibilidad en tiempo real con selector de fecha y hora.
-- Crear nuevas reservas con validación instantánea de negocio.
-- Cancelar reservas liberando el horario y conservando el historial.
-- Explorar el historial y estado de ocupación.
 """
 
 from datetime import datetime, time
@@ -18,11 +11,21 @@ from src.modelos import ErrorDominio, EstadoReserva
 from src.repositorio import JsonReservaRepositorio
 from src.servicio import ReservaServicio
 
-# Configuración inicial de la página
+# Configuración inicial de la página y menú de los 3 puntos verticales (Ayuda / About)
 st.set_page_config(
-    page_title="Gestión de Reservas - Laboratorio",
-    page_icon="🔬",
+    page_title="Sistema de Reservas - Laboratorio",
     layout="wide",
+    menu_items={
+        "About": """
+        ### Sistema de Gestión de Reservas de Laboratorio
+
+        **Condiciones y Criterios Operativos:**
+        * **Límites consecutivos:** Si una reserva finaliza a las 11:00, otra puede comenzar exactamente a las 11:00.
+        * **Simultaneidad entre equipos:** Dos unidades distintas pueden estar reservadas en el mismo horario sin conflicto.
+        * **Cancelaciones:** Una reserva cancelada libera inmediatamente su intervalo y conserva su trazabilidad histórica.
+        * **Consistencia temporal:** El horario de inicio debe ser estrictamente anterior al horario de fin.
+        """
+    },
 )
 
 
@@ -36,12 +39,11 @@ def get_servicio() -> ReservaServicio:
 def main():
     servicio = get_servicio()
 
-    st.title("🔬 Sistema de Reservas de Laboratorio")
-    st.markdown(
-        "Panel interactivo para la gestión y coordinación del equipamiento científico."
-    )
+    # Encabezado sobrio y profesional
+    st.title("Sistema de Gestión de Reservas")
+    st.caption("Coordinación y administración de instrumental de laboratorio")
 
-    # Métricas superiores rápidas
+    # Métricas superiores
     equipos = servicio.obtener_inventario()
     todas_reservas = servicio.listar_reservas()
     activas = [r for r in todas_reservas if r.estado == EstadoReserva.ACTIVA]
@@ -55,13 +57,13 @@ def main():
 
     st.divider()
 
-    # Pestañas principales de navegación
+    # Pestañas principales de navegación sin emojis
     tab_reservar, tab_cancelar, tab_historial, tab_inventario = st.tabs(
         [
-            "📅 Consultar y Reservar",
-            "❌ Cancelar Reserva",
-            "📋 Historial Completo",
-            "🔬 Catálogo de Equipos",
+            "Consultar y Reservar",
+            "Cancelar Reserva",
+            "Historial Completo",
+            "Catálogo de Equipos",
         ]
     )
 
@@ -70,8 +72,9 @@ def main():
     # =========================================================================
     with tab_reservar:
         st.subheader("Nueva Solicitud de Reserva")
-        col_form, col_info = st.columns([2, 1])
 
+        # Formulario limpio de ancho cómodo
+        col_form, _ = st.columns([3, 1])
         with col_form:
             opciones_equipos = {
                 f"{eq.id} - {eq.nombre}": eq.id for eq in equipos
@@ -83,7 +86,7 @@ def main():
 
             solicitante = st.text_input(
                 "Nombre o Equipo Solicitante (ficticio):",
-                placeholder="Ej. Dra. Juana Manso",
+                placeholder="Ej. Juan Perez",
             )
 
             col_fecha, col_h_ini, col_h_fin = st.columns(3)
@@ -101,9 +104,9 @@ def main():
 
             col_btn1, col_btn2 = st.columns([1, 1])
             with col_btn1:
-                btn_consultar = st.button("🔍 Consultar Disponibilidad", use_container_width=True)
+                btn_consultar = st.button("Consultar Disponibilidad", use_container_width=True)
             with col_btn2:
-                btn_reservar = st.button("✅ Confirmar Reserva", type="primary", use_container_width=True)
+                btn_reservar = st.button("Confirmar Reserva", type="primary", use_container_width=True)
 
             if btn_consultar:
                 try:
@@ -112,17 +115,17 @@ def main():
                     )
                     if disponible:
                         st.success(
-                            f"✨ **Disponible:** La unidad `{id_unidad}` está libre de "
+                            f"**Disponible:** La unidad `{id_unidad}` está libre de "
                             f"{hora_inicio.strftime('%H:%M')} a {hora_fin.strftime('%H:%M')}."
                         )
                     else:
                         st.error(
-                            f"⚠️ **Ocupada:** Conflicto con la reserva `{conflicto.id}` "
-                            f"({conflicto.solicitante}) en el horario "
-                            f"{conflicto.inicio.strftime('%H:%M')} - {conflicto.fin.strftime('%H:%M')}."
+                            f"**Unidad ocupada:** Conflicto con la reserva `{conflicto.id}` "
+                            f"({conflicto.solicitante}) en el intervalo "
+                            f"{conflicto.inicio.strftime('%H:%M')} a {conflicto.fin.strftime('%H:%M')}."
                         )
                 except ErrorDominio as err:
-                    st.error(f"❌ Error de validación: {err}")
+                    st.error(f"Error de validación: {err}")
 
             if btn_reservar:
                 try:
@@ -133,7 +136,7 @@ def main():
                         fin=dt_fin,
                     )
                     st.success(
-                        f"🎉 **¡Reserva confirmada con éxito!**\n\n"
+                        f"**Reserva confirmada con éxito**\n\n"
                         f"- **ID:** `{nueva.id}`\n"
                         f"- **Unidad:** `{nueva.id_unidad}`\n"
                         f"- **Solicitante:** {nueva.solicitante}\n"
@@ -141,15 +144,7 @@ def main():
                     )
                     st.rerun()
                 except ErrorDominio as err:
-                    st.error(f"❌ No se pudo crear la reserva: {err}")
-
-        with col_info:
-            st.info(
-                "**Reglas de negocio aplicadas:**\n\n"
-                "- **Límites consecutivos permitidos:** Si un turno termina a las 11:00, otro puede arrancar a las 11:00.\n"
-                "- **Simultaneidad:** Distintas unidades pueden reservarse al mismo tiempo sin conflicto.\n"
-                "- **Canceladas:** No bloquean disponibilidad."
-            )
+                    st.error(f"No se pudo crear la reserva: {err}")
 
     # =========================================================================
     # TAB 2: CANCELAR RESERVA
@@ -204,7 +199,7 @@ def main():
                     "Solicitante": r.solicitante,
                     "Inicio": r.inicio.strftime("%Y-%m-%d %H:%M"),
                     "Fin": r.fin.strftime("%Y-%m-%d %H:%M"),
-                    "Estado": "🟢 ACTIVA" if r.estado == EstadoReserva.ACTIVA else "🔴 CANCELADA",
+                    "Estado": r.estado.value,
                 }
                 for r in datos_mostrar
             ]

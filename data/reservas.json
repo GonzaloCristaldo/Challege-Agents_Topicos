@@ -13,7 +13,7 @@
     "solicitante": "Dr. Bernardo Houssay",
     "inicio": "2026-11-01T11:00:00",
     "fin": "2026-11-01T12:00:00",
-    "estado": "ACTIVA"
+    "estado": "CANCELADA"
   },
   {
     "id": "RES-E0BC977C",
@@ -21,6 +21,22 @@
     "solicitante": "Ing. Cecilia Grierson",
     "inicio": "2026-11-01T10:00:00",
     "fin": "2026-11-01T11:00:00",
+    "estado": "CANCELADA"
+  },
+  {
+    "id": "RES-DF77D6C8",
+    "id_unidad": "MUL-01",
+    "solicitante": "Juan Perez",
+    "inicio": "2026-10-31T10:00:00",
+    "fin": "2026-10-31T11:00:00",
+    "estado": "ACTIVA"
+  },
+  {
+    "id": "RES-C15D141F",
+    "id_unidad": "MUL-01",
+    "solicitante": "Juan Perez",
+    "inicio": "2026-10-31T18:00:00",
+    "fin": "2026-10-31T19:00:00",
     "estado": "ACTIVA"
   }
 ]
