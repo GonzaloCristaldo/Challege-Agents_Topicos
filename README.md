@@ -62,8 +62,9 @@ Challege-Agents_Topicos/
 │   └── workflows/
 │       └── ci.yml              # Pipeline de Integración Continua (GitHub Actions)
 ├── .gitignore
+├── app.py                      # Interfaz gráfica interactiva web (Streamlit)
 ├── pyproject.toml              # Configuración moderna del proyecto y pytest
-├── requirements.txt            # Dependencias del proyecto (pytest>=8.0.0)
+├── requirements.txt            # Dependencias del proyecto (pytest, streamlit)
 ├── README.md                   # Documentación central del desafío
 ├── Documentos/                 # Consignas de la cátedra
 │   └── challenge-agents.pdf
@@ -86,7 +87,8 @@ Challege-Agents_Topicos/
     ├── conftest.py             # Fixtures con tmp_path aislado
     ├── test_reservas.py        # Casos de prueba requeridos por la consigna
     ├── test_cli.py             # Pruebas automatizadas de la CLI
-    └── test_demo.py            # Validación automatizada del script de demo
+    ├── test_demo.py            # Validación automatizada del script de demo
+    └── test_app.py             # Validación de la interfaz gráfica Streamlit
 ```
 
 ### 2.2. Decisiones Técnicas y Requisitos Previos
@@ -115,6 +117,10 @@ Challege-Agents_Topicos/
 5. **Ejecutar la aplicación de consola (CLI):**
    ```bash
    python -m src.cli --help
+   ```
+6. **Ejecutar la interfaz gráfica interactiva (Streamlit):**
+   ```bash
+   streamlit run app.py
    ```
 
 ### 2.4. Ejemplos de Entrada y Salida (Comandos CLI)
@@ -260,9 +266,10 @@ platform win32 -- Python 3.14.0, pytest-9.1.1, pluggy-1.7.0
 rootdir: C:\Topicos de Ingenieria del Software\Challege-Agents_Topicos
 configfile: pyproject.toml
 testpaths: tests
-collected 18 items
+collected 19 items
 
-tests/test_cli.py::test_cli_inventario PASSED                            [  5%]
+tests/test_app.py::test_app_streamlit_importable PASSED                  [  5%]
+tests/test_cli.py::test_cli_inventario PASSED                            [ 10%]
 tests/test_cli.py::test_cli_ayuda_sin_argumentos PASSED                  [ 11%]
 tests/test_demo.py::test_ejecucion_demostracion_sin_errores PASSED       [ 16%]
 tests/test_reservas.py::test_creacion_reserva_valida PASSED              [ 22%]
@@ -281,5 +288,5 @@ tests/test_reservas.py::test_unidad_inexistente_rechazada PASSED         [ 88%]
 tests/test_reservas.py::test_cancelacion_conserva_historial_y_libera_horario PASSED [ 94%]
 tests/test_reservas.py::test_persistencia_recupera_estado_tras_reinicio PASSED [100%]
 
-============================= 18 passed in 0.19s ==============================
+============================= 19 passed in 1.03s ==============================
 ```
