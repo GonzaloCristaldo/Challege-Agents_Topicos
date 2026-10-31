@@ -1,5 +1,7 @@
 # Sistema de Gestión de Reservas de Laboratorio con Agentes
 
+[![CI Tests](https://github.com/GonzaloCristaldo/Challege-Agents_Topicos/actions/workflows/ci.yml/badge.svg)](https://github.com/GonzaloCristaldo/Challege-Agents_Topicos/actions/workflows/ci.yml)
+
 Solución verificable para la coordinación de reservas de equipamiento de laboratorio, desarrollada mediante asistencia de un agente de programación bajo el entorno **Google Antigravity IDE** con el modelo **Gemini 3.8 Flash**.
 
 ---
@@ -56,6 +58,9 @@ La coordinación de un laboratorio gestiona pedidos mediante mensajes y planilla
 ### 2.1. Estructura del Proyecto
 ```text
 Challege-Agents_Topicos/
+├── .github/
+│   └── workflows/
+│       └── ci.yml              # Pipeline de Integración Continua (GitHub Actions)
 ├── .gitignore
 ├── pyproject.toml              # Configuración moderna del proyecto y pytest
 ├── requirements.txt            # Dependencias del proyecto (pytest>=8.0.0)
