@@ -223,6 +223,7 @@ Nuevo Estado: CANCELADA (Horario liberado)
 * **Persistencia en JSON:** Se priorizó JSON estructurado sobre SQLite por su total transparencia, facilidad de inspección directa sin clientes externos y portabilidad nativa.
 * **Intervalos Semiabiertos `[inicio, fin)`:** Eliminan ambigüedad en los extremos de turnos y formalizan el comportamiento de límites consecutivos.
 * **Centralización en Capa de Servicio:** Las validaciones de invariantes residen exclusivamente en `ReservaServicio`, asegurando que la CLI y las pruebas compartan las mismas reglas.
+* **Incorporación de Interfaz Gráfica (Streamlit) en desarrollo:** Aunque la consigna no requería interfaz gráfica obligatoria, quise probar qué tan desacoplada había quedado la arquitectura agregando una UI web local. Elegí Streamlit frente a Tkinter (más tedioso para manejar fechas y horas) o FastAPI (demasiado código de transporte HTTP), porque me permitía construir una interfaz web limpia en Python puro consumiendo directamente `ReservaServicio`, sin modificar una sola línea del dominio ni de la persistencia.
 
 ### 4.2. Tres Episodios Reales de Delegación
 
@@ -249,6 +250,15 @@ Nuevo Estado: CANCELADA (Horario liberado)
 * **Acción o resultado del agente:** Implementación inicial de [src/cli.py](src/cli.py). Al ejecutar la prueba en la terminal PowerShell de Windows, se observaron caracteres corruptos en las tildes (`DESCRIPCIN`). El agente detectó la discordancia de página de códigos y añadió `sys.stdout.reconfigure(encoding="utf-8")`.
 * **Decisión humana:** *Corregido por problema de codificación en consola Windows y aceptado tras prueba manual.* Se ejecutó manualmente la secuencia completa (reserva, consulta de superposición, límites consecutivos, cancelación, disponibilidad liberada y persistencia) y la suite automatizada completa de 17 tests.
 * **Evidencia verificable:** [src/cli.py](src/cli.py), [tests/test_cli.py](tests/test_cli.py), registro de comprobaciones ejecutadas en terminal y bitácora detallada en [docs/verificacion_humana.md](docs/verificacion_humana.md).
+
+#### Evolución Posterior: Prototipado y Refinamiento de la UI (Rama `development`)
+* **Objetivo:** Sumar una capa visual interactiva (`app.py`) manteniendo intacto el core y resolviendo detalles de usabilidad y entorno local.
+* **Contexto e interacción con el agente:** Le pedí al agente que me sugiriera alternativas para agregar una GUI sin romper lo ya construido. Se implementó un primer prototipo en Streamlit en la rama `development`.
+* **Decisiones y correcciones humanas aplicadas:**
+  1. *Fijación de dirección IPv4:* Al probar la app en `localhost:8501`, el navegador se quedaba en estado de carga (*skeleton*). Noté que ingresando por la IP local funcionaba, por lo que le pedí solucionar esto; se creó [.streamlit/config.toml](.streamlit/config.toml) con `address = "127.0.0.1"` para forzar IPv4 y evitar conflictos de WebSockets con IPv6 en Windows.
+  2. *Refinamiento estético y sobriedad:* Solicité retirar emojis y estrellas del título y mensajes de confirmación para darle un perfil formal e institucional.
+  3. *Reubicación de reglas a Ayuda:* Pedí quitar el recuadro explícito que decía "Reglas de negocio" y mover esas condiciones al menú superior de los tres puntos verticales (`⋮` -> About / Acerca de), dejando el formulario más limpio y profesional.
+* **Evidencia verificable:** [app.py](app.py), [.streamlit/config.toml](.streamlit/config.toml), [tests/test_app.py](tests/test_app.py) y commits correspondientes en la rama `development`.
 
 ---
 

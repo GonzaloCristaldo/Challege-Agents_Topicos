@@ -25,7 +25,7 @@ El sistema resuelve esta necesidad brindando un mecanismo automatizado, local y 
 * Pasarelas de pago, cobranzas o facturación.
 * Notificaciones por correo electrónico, SMS o webhooks.
 * Despliegue en la nube, microservicios, bases de datos distribuidas o esquemas cliente-servidor complejos.
-* Interfaz gráfica compleja (se provee interfaz de consola CLI y API/servicios locales).
+* Interfaz gráfica compleja obligatoria: la consigna prioriza la verificación mediante CLI y servicios desacoplados; de forma complementaria se provee una interfaz web liviana e interactiva en Streamlit (`app.py`) que consume el mismo servicio de negocio.
 
 ---
 
