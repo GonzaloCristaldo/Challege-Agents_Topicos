@@ -120,7 +120,7 @@ Challege-Agents_Topicos/
    ```
 6. **Ejecutar la interfaz gráfica interactiva (Streamlit):**
    ```bash
-   streamlit run app.py
+   python -m streamlit run app.py
    ```
 
 ### 2.4. Ejemplos de Entrada y Salida (Comandos CLI)
