@@ -74,11 +74,14 @@ Challege-Agents_Topicos/
 │   ├── repositorio.py          # Repositorio JSON con persistencia atómica
 │   ├── servicio.py             # Lógica de negocio, validaciones y colisiones
 │   └── cli.py                  # Interfaz de línea de comandos interactiva
+├── scripts/                    # Scripts de soporte y utilitarios
+│   └── demo.py                 # Demostración interactiva guiada end-to-end
 └── tests/                      # Suite de pruebas automatizadas
     ├── __init__.py
     ├── conftest.py             # Fixtures con tmp_path aislado
     ├── test_reservas.py        # Casos de prueba requeridos por la consigna
-    └── test_cli.py             # Pruebas automatizadas de la CLI
+    ├── test_cli.py             # Pruebas automatizadas de la CLI
+    └── test_demo.py            # Validación automatizada del script de demo
 ```
 
 ### 2.2. Decisiones Técnicas y Requisitos Previos
@@ -100,7 +103,11 @@ Challege-Agents_Topicos/
    ```bash
    python -m pytest -v
    ```
-4. **Ejecutar la aplicación de consola (CLI):**
+4. **Ejecutar la demostración guiada completa:**
+   ```bash
+   python scripts/demo.py
+   ```
+5. **Ejecutar la aplicación de consola (CLI):**
    ```bash
    python -m src.cli --help
    ```
@@ -246,25 +253,28 @@ Resultado obtenido:
 ============================= test session starts =============================
 platform win32 -- Python 3.14.0, pytest-9.1.1, pluggy-1.7.0
 rootdir: C:\Topicos de Ingenieria del Software\Challege-Agents_Topicos
-collected 17 items
+configfile: pyproject.toml
+testpaths: tests
+collected 18 items
 
 tests/test_cli.py::test_cli_inventario PASSED                            [  5%]
 tests/test_cli.py::test_cli_ayuda_sin_argumentos PASSED                  [ 11%]
-tests/test_reservas.py::test_creacion_reserva_valida PASSED              [ 17%]
-tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T10:30-2026-11-01T11:30] PASSED [ 23%]
-tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T09:30-2026-11-01T10:30] PASSED [ 29%]
-tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T10:15-2026-11-01T10:45] PASSED [ 35%]
-tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T09:00-2026-11-01T12:00] PASSED [ 41%]
-tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T10:00-2026-11-01T11:00] PASSED [ 47%]
-tests/test_reservas.py::test_limites_consecutivos_permitidos PASSED      [ 52%]
-tests/test_reservas.py::test_simultaneidad_unidades_distintas PASSED     [ 58%]
-tests/test_reservas.py::test_solicitante_vacio_rechazado[] PASSED        [ 64%]
-tests/test_reservas.py::test_solicitante_vacio_rechazado[   ] PASSED     [ 70%]
-tests/test_reservas.py::test_solicitante_vacio_rechazado[\t\n  ] PASSED  [ 76%]
-tests/test_reservas.py::test_inicio_mayor_o_igual_a_fin_rechazado PASSED [ 82%]
+tests/test_demo.py::test_ejecucion_demostracion_sin_errores PASSED       [ 16%]
+tests/test_reservas.py::test_creacion_reserva_valida PASSED              [ 22%]
+tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T10:30-2026-11-01T11:30] PASSED [ 27%]
+tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T09:30-2026-11-01T10:30] PASSED [ 33%]
+tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T10:15-2026-11-01T10:45] PASSED [ 38%]
+tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T09:00-2026-11-01T12:00] PASSED [ 44%]
+tests/test_reservas.py::test_rechazo_superposicion_misma_unidad[2026-11-01T10:00-2026-11-01T11:00] PASSED [ 50%]
+tests/test_reservas.py::test_limites_consecutivos_permitidos PASSED      [ 55%]
+tests/test_reservas.py::test_simultaneidad_unidades_distintas PASSED     [ 61%]
+tests/test_reservas.py::test_solicitante_vacio_rechazado[] PASSED        [ 66%]
+tests/test_reservas.py::test_solicitante_vacio_rechazado[   ] PASSED     [ 72%]
+tests/test_reservas.py::test_solicitante_vacio_rechazado[\t\n  ] PASSED  [ 77%]
+tests/test_reservas.py::test_inicio_mayor_o_igual_a_fin_rechazado PASSED [ 83%]
 tests/test_reservas.py::test_unidad_inexistente_rechazada PASSED         [ 88%]
 tests/test_reservas.py::test_cancelacion_conserva_historial_y_libera_horario PASSED [ 94%]
 tests/test_reservas.py::test_persistencia_recupera_estado_tras_reinicio PASSED [100%]
 
-============================= 17 passed in 0.17s ==============================
+============================= 18 passed in 0.19s ==============================
 ```
