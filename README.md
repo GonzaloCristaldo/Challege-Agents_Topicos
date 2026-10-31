@@ -57,6 +57,7 @@ La coordinación de un laboratorio gestiona pedidos mediante mensajes y planilla
 ```text
 Challege-Agents_Topicos/
 ├── .gitignore
+├── pyproject.toml              # Configuración moderna del proyecto y pytest
 ├── requirements.txt            # Dependencias del proyecto (pytest>=8.0.0)
 ├── README.md                   # Documentación central del desafío
 ├── Documentos/                 # Consignas de la cátedra
